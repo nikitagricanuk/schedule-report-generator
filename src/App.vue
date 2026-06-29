@@ -17,6 +17,8 @@ const {
   classroomById,
 } = storeToRefs(scheduleStore)
 
+const { getTeacherSchedule } = scheduleStore
+
 let model = ref('teachers')
 const selectedDepartments = ref(null)
 const selectedBlock = ref(null)
@@ -153,10 +155,9 @@ watch(model, () => {
       </div>
     </div>
 
-    <!-- {{ classroomById[61] }}<br>
-    {{ classrooms[0] }} -->
+    {{ getTeacherSchedule(2147) }}<br>
     <!-- {{ generateReport([475020], Types.SUBGROUP)}} -->
-    <q-btn icon="print" @click="onPrintClick">Печатать</q-btn>
+  <q-btn icon="print" @click="generateReport([2147], Types.TEACHER)">Печатать</q-btn>
   </div>
 </template>
 
