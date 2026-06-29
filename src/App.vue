@@ -6,11 +6,11 @@ import useScheduleStore from '@/stores/scheduleStore'
 const scheduleStore = useScheduleStore();
 const {
   load,
-  raspis,
-  auds,
+  schedule,
+  classrooms,
   teachers,
-  preds,
-  kafs,
+  disciplines,
+  departments,
 
   classroomById,
 } = storeToRefs(scheduleStore)
@@ -27,7 +27,7 @@ function onPrintClick() {
   <div class="q-pa-md">
     123
     {{ classroomById[61] }}<br>
-  {{ auds[0] }}
+  {{ classrooms[0] }}
 
   <br>
   <q-btn icon="print" @click="onPrintClick">Печатать</q-btn>
