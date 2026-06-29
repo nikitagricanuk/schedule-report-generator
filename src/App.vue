@@ -98,7 +98,7 @@ function getSelectedString() {
 
     {{ getTeacherSchedule(2147) }}<br>
     <!-- {{ generateReport([475020], Types.SUBGROUP)}} -->
-<!--  <q-btn icon="print" @click="generateReport([475020], Types.SUBGROUP)">Печатать</q-btn>-->
+  <q-btn icon="print" @click="generateReport([2147], Types.TEACHER)">Печатать</q-btn>
   </div>
 </template>
 

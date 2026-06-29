@@ -23,25 +23,37 @@ const useScheduleStore = defineStore('scheduleStore', () => {
             for (const slot of slots) {
                 if (slot.day === i || slot.day === i + 7) {
                     const actualDay = slot.day > 7 ? i + 7 : i
-                    scheduleRebuild.push({
-                        day: actualDay,
-                        type: slot.nt,
-                        order: slot.para,
-                        discipline: slot.discipline,
-                        classroom: slot.classroom,
-                        teacher: slot.teacher,
-                        groups: slot.groups,
-                    })
-
                     if (slot.everyweek === 2) {
+                        scheduleRebuild.push([
+                            {
+                                day: actualDay,
+                                type: { 1: 'лк', 2: 'пр', 3: 'лб' }[slot.nt] ?? slot.nt,
+                                order: slot.para,
+                                discipline: slot.discipline,
+                                classroom: slot.classroom,
+                                teacher: slot.teacher,
+                                groups: Array.isArray(slot.groups) ? slot.groups.join(', ') : slot.groups,
+                            },
+                            {
+                                day: actualDay === i ? i + 7 : i,
+                                type: { 1: 'лк', 2: 'пр', 3: 'лб' }[slot.nt] ?? slot.nt,
+                                order: slot.para,
+                                discipline: slot.discipline,
+                                classroom: slot.classroom,
+                                teacher: slot.teacher,
+                                groups: Array.isArray(slot.groups) ? slot.groups.join(', ') : slot.groups,
+                            }
+                        ])
+                    }
+                    else {
                         scheduleRebuild.push({
-                            day: actualDay === i ? i + 7 : i,
-                            type: slot.nt,
+                            day: actualDay,
+                            type: { 1: 'лк', 2: 'пр', 3: 'лб' }[slot.nt] ?? slot.nt,
                             order: slot.para,
                             discipline: slot.discipline,
                             classroom: slot.classroom,
                             teacher: slot.teacher,
-                            groups: slot.groups,
+                            groups: Array.isArray(slot.groups) ? slot.groups.join(', ') : slot.groups,
                         })
                     }
                 }
@@ -65,6 +77,7 @@ const useScheduleStore = defineStore('scheduleStore', () => {
     }
 
     function getTeacherSchedule(id) {
+        if (!schedule.value?.raspis) return [] // not initialised guard
         const slots = schedule.value.raspis
             .map(slot => mapSlot(slot, id))
             .filter(e => e.teacher)
@@ -72,6 +85,7 @@ const useScheduleStore = defineStore('scheduleStore', () => {
     }
 
     function getSubgroupSchedule(id) {
+        if (!schedule.value?.raspis) return []
         const slots = schedule.value.raspis
             .filter(slot => load.value[slot.raspnagr]?.subgroups.includes(id))
             .map(slot => mapSlot(slot, load.value[slot.raspnagr].teachers[0]))
@@ -80,6 +94,10 @@ const useScheduleStore = defineStore('scheduleStore', () => {
 
     function getTeacherById(id) {
         return Object.values(teachers.value).find(e => e.id === id)
+    }
+
+    function getGroupById(id) {
+        return Object.values(groups.value).find(e => e.id === id)
     }
 
     onBeforeMount(async () => {
