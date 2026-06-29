@@ -1,5 +1,5 @@
-import { defineStore } from "pinia";
-import { onBeforeMount, computed, ref } from 'vue';
+import {defineStore} from "pinia";
+import {onBeforeMount, computed, ref} from 'vue';
 import axios from 'axios';
 import _ from 'lodash';
 
@@ -17,30 +17,69 @@ const useScheduleStore = defineStore('scheduleStore', () => {
     const disciplineById = computed(() => _.keyBy(disciplines.value, d => d.id))
     const groupsById = computed(() => _.keyBy(groups.value, g => g.id))
 
-    function getTeacherSchedule(id) {
-        return schedule.value.raspis
-            .map(slot => {
-                const workload = load.value[slot.raspnagr]
-                return {
-                    day:        slot.day,
-                    para:       slot.para,
-                    everyweek:  slot.everyweek,
-                    nt:         workload.nt,
-                    teacher:    teacherById.value[id]?.full_name?.trim(),
-                    groups:     workload.subgroups.map(sgId => groupsById.value[sgId]?.obozn),
-                    discipline: disciplineById.value[workload.pred]?.pred,
-                    classroom:  classroomById.value[slot.auds[0]]?.obozn?.trim(),
+    function rebuildSchedule(slots) {
+        const scheduleRebuild = []
+        for (let i = 1; i <= 7; ++i) {
+            for (const slot of slots) {
+                if (slot.day === i || slot.day === i + 7) {
+                    const actualDay = slot.day > 7 ? i + 7 : i
+                    scheduleRebuild.push({
+                        day: actualDay,
+                        type: slot.nt,
+                        order: slot.para,
+                        discipline: slot.discipline,
+                        classroom: slot.classroom,
+                        teacher: slot.teacher,
+                        groups: slot.groups,
+                    })
+
+                    if (slot.everyweek === 2) {
+                        scheduleRebuild.push({
+                            day: actualDay === i ? i + 7 : i,
+                            type: slot.nt,
+                            order: slot.para,
+                            discipline: slot.discipline,
+                            classroom: slot.classroom,
+                            teacher: slot.teacher,
+                            groups: slot.groups,
+                        })
+                    }
                 }
-            })
+            }
+        }
+        return scheduleRebuild
+    }
+
+    function mapSlot(slot, teacherId) {
+        const workload = load.value[slot.raspnagr]
+        return {
+            day: slot.day,
+            para: slot.para,
+            everyweek: slot.everyweek,
+            nt: workload.nt,
+            teacher: teacherById.value[teacherId]?.full_name?.trim(),
+            groups: workload.subgroups.map(sgId => groupsById.value[sgId]?.obozn),
+            discipline: disciplineById.value[workload.pred]?.pred,
+            classroom: classroomById.value[slot.auds[0]]?.obozn?.trim(),
+        }
+    }
+
+    function getTeacherSchedule(id) {
+        const slots = schedule.value.raspis
+            .map(slot => mapSlot(slot, id))
             .filter(e => e.teacher)
+        return rebuildSchedule(slots)
     }
 
     function getSubgroupSchedule(id) {
-      return Object.values(load.value).filter(e => e.subgroups.includes(id))
+        const slots = schedule.value.raspis
+            .filter(slot => load.value[slot.raspnagr]?.subgroups.includes(id))
+            .map(slot => mapSlot(slot, load.value[slot.raspnagr].teachers[0]))
+        return rebuildSchedule(slots)
     }
 
     function getTeacherById(id) {
-      return Object.values(teachers.value).find(e => e.id === id)
+        return Object.values(teachers.value).find(e => e.id === id)
     }
 
     onBeforeMount(async () => {
@@ -62,17 +101,17 @@ const useScheduleStore = defineStore('scheduleStore', () => {
     })
 
     return {
-      load: load,
-      schedule: schedule,
-      groups: groups,classrooms: classrooms,
-      teachers: teachers,
-      disciplines: disciplines,
-      departments: departments,
+        load: load,
+        schedule: schedule,
+        groups: groups, classrooms: classrooms,
+        teachers: teachers,
+        disciplines: disciplines,
+        departments: departments,
 
-      classroomById: classroomById,
-      getTeacherSchedule: getTeacherSchedule,
-      getSubgroupSchedule: getSubgroupSchedule,
-      getTeacherById: getTeacherById,
+        classroomById: classroomById,
+        getTeacherSchedule: getTeacherSchedule,
+        getSubgroupSchedule: getSubgroupSchedule,
+        getTeacherById: getTeacherById,
     }
 })
 
