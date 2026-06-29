@@ -6,51 +6,73 @@ import _ from 'lodash';
 const useScheduleStore = defineStore('scheduleStore', () => {
     const load = ref({})
     const schedule = ref([])
-    const groups = ref([])
     const classrooms = ref([])
     const teachers = ref([])
     const disciplines = ref([])
     const departments = ref([])
+    const groups = ref([])
 
-    const classroomById = computed(() => {
-        return _.keyBy(classrooms.value, x => x.id)
-    })
+    const classroomById = computed(() => _.keyBy(classrooms.value, x => x.id))
+    const teacherById = computed(() => _.keyBy(teachers.value, t => t.id))
+    const disciplineById = computed(() => _.keyBy(disciplines.value, d => d.id))
+    const groupsById = computed(() => _.keyBy(groups.value, g => g.id))
 
     function getTeacherSchedule(id) {
-      return Object.values(load.value).filter(e => e.teachers.includes(id))
+        return schedule.value.raspis
+            .map(slot => {
+                const workload = load.value[slot.raspnagr]
+                return {
+                    day:        slot.day,
+                    para:       slot.para,
+                    everyweek:  slot.everyweek,
+                    nt:         workload.nt,
+                    teacher:    teacherById.value[id]?.full_name?.trim(),
+                    groups:     workload.subgroups.map(sgId => groupsById.value[sgId]?.obozn),
+                    discipline: disciplineById.value[workload.pred]?.pred,
+                    classroom:  classroomById.value[slot.auds[0]]?.obozn?.trim(),
+                }
+            })
+            .filter(e => e.teacher)
     }
 
     function getSubgroupSchedule(id) {
       return Object.values(load.value).filter(e => e.subgroups.includes(id))
     }
 
+    function getTeacherById(id) {
+      return Object.values(teachers.value).find(e => e.id === id)
+    }
+
     onBeforeMount(async () => {
-            let r = await axios.get('/all.json')
-            load.value = r.data;
-            r = await axios.get('/groups.json')
-            groups.value = r.data;
-            r = await axios.get('/auds.json')
-            classrooms.value = r.data;
-            r = await axios.get('/teachers.json')
-            teachers.value = r.data;
-            r = await axios.get('/preds.json')
-            disciplines.value = r.data;
-            r = await axios.get('/schedule-kaf.json')
-            departments.value = r.data;
+        let r = await axios.get('/all.json')
+        load.value = r.data;
+
+        r = await axios.get('/teacher_2147.json')
+        schedule.value = r.data;
+        r = await axios.get('/auds.json')
+        classrooms.value = r.data;
+        r = await axios.get('/teachers.json')
+        teachers.value = r.data;
+        r = await axios.get('/schedule-pred.json')
+        disciplines.value = r.data;
+        r = await axios.get('/schedule-kaf.json')
+        departments.value = r.data;
+        r = await axios.get('/groups.json')
+        groups.value = r.data;
     })
 
     return {
-        load: load,
-        schedule: schedule,
-        groups: groups,
-        classrooms: classrooms,
-        teachers: teachers,
-        disciplines: disciplines,
-        departments: departments,
+      load: load,
+      schedule: schedule,
+      groups: groups,classrooms: classrooms,
+      teachers: teachers,
+      disciplines: disciplines,
+      departments: departments,
 
-        classroomById: classroomById,
-        getTeacherSchedule: getTeacherSchedule,
-        getSubgroupSchedule: getSubgroupSchedule,
+      classroomById: classroomById,
+      getTeacherSchedule: getTeacherSchedule,
+      getSubgroupSchedule: getSubgroupSchedule,
+      getTeacherById: getTeacherById,
     }
 })
 
