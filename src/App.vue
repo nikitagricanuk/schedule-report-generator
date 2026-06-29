@@ -5,19 +5,19 @@ import useScheduleStore from '@/stores/scheduleStore'
 
 const scheduleStore = useScheduleStore();
 const {
-  nagruzka,
+  load,
   raspis,
   auds,
   teachers,
   preds,
   kafs,
 
-  audsById,
+  classroomById,
 } = storeToRefs(scheduleStore)
 
 
 function onPrintClick() {
-  const raspis = scheduleStore.getRaspis([2147], 'teacher')
+  const raspis = scheduleStore.getSchedule([2147], 'teacher')
   // код формировния word файла по raspis
 }
 
@@ -26,7 +26,7 @@ function onPrintClick() {
 <template>
   <div class="q-pa-md">
     123
-  {{ audsById[61] }}<br>
+    {{ classroomById[61] }}<br>
   {{ auds[0] }}
 
   <br>
@@ -35,5 +35,5 @@ function onPrintClick() {
 </template>
 
 <style>
-  
+
 </style>

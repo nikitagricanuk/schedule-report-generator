@@ -5,49 +5,49 @@ import _ from 'lodash';
 
 const useScheduleStore = defineStore('scheduleStore', () => {
 
-    const nagruzka = ref({})
-    const raspis = ref([])
-    const auds = ref([])
+    const load = ref({})
+    const schedule = ref([])
+    const classrooms = ref([])
     const teachers = ref([])
-    const preds = ref([])
-    const kafs = ref([])
+    const disciplines = ref([])
+    const departments = ref([])
 
-    const audsById = computed(() => {
-        return _.keyBy(auds.value, x => x.id)
+    const classroomById = computed(() => {
+        return _.keyBy(classrooms.value, x => x.id)
     })
 
-    async function getRaspis(ids, type) {
+    async function getSchedule(ids, type) {
         r = await axios.get('/teacher_2147.json')
-        raspis.value = r.data.raspis;
-        return raspis
+        schedule.value = r.data.schedule;
+        return schedule
     }
 
     onBeforeMount(async () => {
         let r = await axios.get('/all.json')
-        nagruzka.value = r.data;
+        load.value = r.data;
 
 
-        
+
         r = await axios.get('/auds.json')
-        auds.value = r.data;
+        classrooms.value = r.data;
         r = await axios.get('/teachers.json')
         teachers.value = r.data;
         r = await axios.get('/preds.json')
-        preds.value = r.data;
+        disciplines.value = r.data;
         r = await axios.get('/kafs.json')
-        kafs.value = r.data;
+        departments.value = r.data;
     })
 
     return {
-        nagruzka,
-        raspis,
-        auds,
+        load: load,
+        schedule: schedule,
+        classrooms: classrooms,
         teachers,
-        preds,
-        kafs,
+        disciplines: disciplines,
+        departments: departments,
 
-        audsById,
-        getRaspis,
+        classroomById: classroomById,
+        getSchedule: getSchedule,
     }
 })
 
