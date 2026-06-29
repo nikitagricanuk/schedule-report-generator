@@ -1,12 +1,12 @@
 import { defineStore } from "pinia";
-import {onBeforeMount, computed, ref} from 'vue';
+import { onBeforeMount, computed, ref } from 'vue';
 import axios from 'axios';
 import _ from 'lodash';
 
 const useScheduleStore = defineStore('scheduleStore', () => {
-
     const load = ref({})
     const schedule = ref([])
+    const groups = ref([])
     const classrooms = ref([])
     const teachers = ref([])
     const disciplines = ref([])
@@ -23,24 +23,24 @@ const useScheduleStore = defineStore('scheduleStore', () => {
     }
 
     onBeforeMount(async () => {
-        let r = await axios.get('/all.json')
-        load.value = r.data;
-
-
-
-        r = await axios.get('/auds.json')
-        classrooms.value = r.data;
-        r = await axios.get('/teachers.json')
-        teachers.value = r.data;
-        r = await axios.get('/preds.json')
-        disciplines.value = r.data;
-        r = await axios.get('/kafs.json')
-        departments.value = r.data;
+            let r = await axios.get('/all.json')
+            load.value = r.data;
+            r = await axios.get('/groups.json')
+            groups.value = r.data;
+            r = await axios.get('/auds.json')
+            classrooms.value = r.data;
+            r = await axios.get('/teachers.json')
+            teachers.value = r.data;
+            r = await axios.get('/preds.json')
+            disciplines.value = r.data;
+            r = await axios.get('/schedule-kaf.json')
+            departments.value = r.data;
     })
 
     return {
         load: load,
         schedule: schedule,
+        groups: groups,
         classrooms: classrooms,
         teachers,
         disciplines: disciplines,
