@@ -1,6 +1,7 @@
 <script setup>
 import { storeToRefs } from 'pinia';
 import useScheduleStore from '@/stores/scheduleStore'
+import generateReport, { Types } from "./generation/index.js";
 
 
 const scheduleStore = useScheduleStore();
@@ -11,13 +12,12 @@ const {
   teachers,
   disciplines,
   departments,
-
   classroomById,
 } = storeToRefs(scheduleStore)
 
 
 function onPrintClick() {
-  const raspis = scheduleStore.getSchedule([2147], 'teacher')
+  const raspis = scheduleStore.getTeacherSchedule([2147], 'teacher')
   // код формировния word файла по raspis
 }
 
@@ -27,7 +27,7 @@ function onPrintClick() {
   <div class="q-pa-md">
     123
     {{ classroomById[61] }}<br>
-  {{ classrooms[0] }}
+    {{ generateReport([475020], Types.SUBGROUP)}}
 
   <br>
   <q-btn icon="print" @click="onPrintClick">Печатать</q-btn>

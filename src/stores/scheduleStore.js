@@ -16,10 +16,12 @@ const useScheduleStore = defineStore('scheduleStore', () => {
         return _.keyBy(classrooms.value, x => x.id)
     })
 
-    async function getSchedule(ids, type) {
-        r = await axios.get('/teacher_2147.json')
-        schedule.value = r.data.schedule;
-        return schedule
+    function getTeacherSchedule(id) {
+      return Object.values(load.value).filter(e => e.teachers.includes(id))
+    }
+
+    function getSubgroupSchedule(id) {
+      return Object.values(load.value).filter(e => e.subgroups.includes(id))
     }
 
     onBeforeMount(async () => {
@@ -42,12 +44,13 @@ const useScheduleStore = defineStore('scheduleStore', () => {
         load: load,
         schedule: schedule,
         classrooms: classrooms,
-        teachers,
+        teachers: teachers,
         disciplines: disciplines,
         departments: departments,
 
         classroomById: classroomById,
-        getSchedule: getSchedule,
+        getTeacherSchedule: getTeacherSchedule,
+        getSubgroupSchedule: getSubgroupSchedule,
     }
 })
 
