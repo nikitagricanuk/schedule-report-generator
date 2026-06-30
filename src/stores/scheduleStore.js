@@ -12,6 +12,7 @@ const useScheduleStore = defineStore('scheduleStore', () => {
     const disciplines = ref([])
     const departments = ref([])
     const groups = ref([])
+    const blocks = ref([])
 
     const classroomById = computed(() => _.keyBy(classrooms.value, x => x.id))
     const teacherById = computed(() => _.keyBy(teachers.value, t => t.id))
@@ -105,6 +106,11 @@ const useScheduleStore = defineStore('scheduleStore', () => {
         return arrayTeachers
     }
 
+    function getClassroomByBlockId(id) {
+        return Object.values(classrooms.value).filter(item => item.korp===id) 
+    }
+
+
     function getGroupById(id) {
         return Object.values(groups.value).find(e => e.id === id)
     }
@@ -115,6 +121,8 @@ const useScheduleStore = defineStore('scheduleStore', () => {
 
         r = await axios.get('/teacher_2147.json')
         schedule.value = r.data;
+        r = await axios.get('/corpus.json')
+        blocks.value = r.data;
         r = await axios.get('/auds.json')
         classrooms.value = r.data;
         r = await axios.get('/teachers.json')
@@ -134,12 +142,14 @@ const useScheduleStore = defineStore('scheduleStore', () => {
         teachers: teachers,
         disciplines: disciplines,
         departments: departments,
+        blocks: blocks,
 
         classroomById: classroomById,
         getTeacherSchedule: getTeacherSchedule,
         getSubgroupSchedule: getSubgroupSchedule,
         getTeacherById: getTeacherById,
         getTeachersByKafId: getTeachersByKafId,
+        getClassroomByBlockId: getClassroomByBlockId,
     }
 })
 

@@ -7,37 +7,27 @@ import generateReport, { Types } from "./generation/index.js";
 
 const scheduleStore = useScheduleStore();
 const {
-  load,
-  schedule,
   groups,
   classrooms,
   teachers,
-  disciplines,
   departments,
-  classroomById,
+  blocks,
 } = storeToRefs(scheduleStore)
 
-const { getTeacherSchedule, getTeachersByKafId } = scheduleStore
+const { getTeachersByKafId, getClassroomByBlockId } = scheduleStore
 
-let model = ref('teachers')
-const selectedDepartments = ref(null)
-const selectedBlock = ref(null)
+let model = ref(Types.TEACHER)
+const selectedOption = ref([])
 let searchModel = ref('')
-const selectedGroups = ref([])
+const selectedRows = ref([])
 const isChoose = ref(false)
-let filtredData = ref([])
-
-function onPrintClick() {
-  const raspis = scheduleStore.getTeacherSchedule([2147], 'teacher')
-  // код формировния word файла по raspis
-}
 
 function selectAll(isChoose) {
   if (isChoose) {
-    selectedGroups.value = [...data.value]
+    selectedRows.value = [...data.value]
   }
   else {
-    selectedGroups.value = []
+    selectedRows.value = []
   }
 }
 
@@ -45,20 +35,22 @@ const data = computed(() => {
   let result = []
 
   switch (model.value) {
-    case 'teachers':
-      if (!selectedDepartments.value) {
+    case Types.TEACHER:
+      if (selectedOption.value.length===0) {
         result = teachers.value ? [...teachers.value] : []
       }
-      else { 
-        console.log(selectedDepartments.value.id)
-        result = getTeachersByKafId(selectedDepartments.value.id) 
+      else {
+        result = getTeachersByKafId(selectedOption.value.id)
       }
       break
-    case 'groups':
+    case Types.SUBGROUP:
       result = groups.value ? [...groups.value] : []
       break
-    case 'classrooms':
-      result = classrooms.value ? [...classrooms.value] : []
+    case Types.CLASSROOMS:
+      if (selectedOption.value.length===0) {
+        result = classrooms.value ? [...classrooms.value] : []
+      }
+      else result = getClassroomByBlockId(selectedOption.value.id)
       break
     default:
       result = []
@@ -67,7 +59,7 @@ const data = computed(() => {
   if (searchModel.value && searchModel.value.trim() !== '') {
     const search = searchModel.value.trim().toLowerCase()
 
-    if (model.value === 'teachers') {
+    if (model.value === Types.TEACHER) {
       return result.filter(item =>
         item.name?.toLowerCase().includes(search)
       )
@@ -84,8 +76,8 @@ const data = computed(() => {
 watch(model, () => {
   searchModel.value = ''
   isChoose.value = false
-  selectedGroups.value = []
-  selectedDepartments.value = null
+  selectedRows.value = []
+  selectedOption.value = []
 })
 
 
@@ -96,9 +88,9 @@ watch(model, () => {
   <div class="q-pa-md container">
     <div class="q-gutter-y-md">
       <q-btn-toggle v-model="model" spread no-caps toggle-color="purple" color="white" text-color="black" :options="[
-        { value: 'teachers', slot: 'one' },
-        { value: 'groups', slot: 'two' },
-        { value: 'classrooms', slot: 'three' }
+        { value: Types.TEACHER, slot: 'one' },
+        { value: Types.SUBGROUP, slot: 'two' },
+        { value: Types.CLASSROOMS, slot: 'three' }
       ]">
 
         <template v-slot:one>
@@ -132,49 +124,53 @@ watch(model, () => {
         </template>
       </q-input>
 
-      <div v-if="model === 'teachers'" style="display: flex; flex-direction: column; gap: 10px;">
+      <div v-if="model === Types.TEACHER" class="model">
 
-        <q-select standout="bg-teal text-white" v-model="selectedDepartments" :options="departments" option-label="kaf"
-          label="Кафедра" placeholder="Выберите кафедру" />
+        <q-select standout="bg-teal text-white" v-model="selectedOption" :options="departments" option-label="kaf"
+          label="Кафедра" />
 
         <q-table flat bordered title="Преподаватели" :rows="data"
           :columns="[{ name: 'name', label: 'ФИО', field: 'name' }]" row-key="id" selection="multiple"
-          v-model:selected="selectedGroups" hide-header-selection
-          :selected-rows-label="(rowsCount) => `Выбрано строк: ${rowsCount}`"
-          rows-per-page-label="Записей на странице:" no-data-label="Нет доступных данных">
+          v-model:selected="selectedRows" hide-header-selection
+          :selected-rows-label="(rowsCount) => `Выбрано строк: ${rowsCount}`" rows-per-page-label="Записей на странице:"
+          no-data-label="Нет доступных данных">
           <template v-slot:header-selection="all">
             <q-checkbox v-model="isChoose" @click="selectAll(isChoose)" />
           </template>
         </q-table>
-
-        <div class="q-mt-md"> Выбрано: {{ selectedGroups.length }} преподователей </div>
       </div>
 
-      <div v-if="model === 'groups'">
+      <div v-if="model === Types.SUBGROUP" class="model">
         <q-table flat bordered title="Группы" :rows="data"
           :columns="[{ name: 'name', label: 'Группы', field: 'obozn' }]" row-key="id" selection="multiple"
-          v-model:selected="selectedGroups" hide-header-selection
-          :selected-rows-label="(rowsCount) => `Выбрано строк: ${rowsCount}`"
-          rows-per-page-label="Записей на странице:" no-data-label="Нет доступных данных">
+          v-model:selected="selectedRows" hide-header-selection
+          :selected-rows-label="(rowsCount) => `Выбрано строк: ${rowsCount}`" rows-per-page-label="Записей на странице:"
+          no-data-label="Нет доступных данных">
           <template v-slot:header-selection="all">
             <q-checkbox v-model="isChoose" @click="selectAll(isChoose)" />
           </template>
         </q-table>
-
-
-        <div class="q-mt-md"> Выбрано: {{ selectedGroups.length }} групп </div>
       </div>
 
-      <div v-if="model === 'classrooms'">
-        корпусы
-        <!-- <q-select standout="bg-teal text-white" v-model="selectedBlock"
-          :options="departments.map(item => item.kaf.trim())" label="Корпус" /> -->
+      <div v-if="model === Types.CLASSROOMS" class="model">
+
+        <q-select standout="bg-teal text-white" v-model="selectedOption" :options="blocks" option-label="korp"
+          label="Корпус" />
+
+        <q-table flat bordered title="Преподаватели" :rows="data"
+          :columns="[{ name: 'name', label: 'Аудитори', field: 'obozn' }]" row-key="id" selection="multiple"
+          v-model:selected="selectedRows" hide-header-selection
+          :selected-rows-label="(rowsCount) => `Выбрано строк: ${rowsCount}`" rows-per-page-label="Записей на странице:"
+          no-data-label="Нет доступных данных">
+          <template v-slot:header-selection="all">
+            <q-checkbox v-model="isChoose" @click="selectAll(isChoose)" />
+          </template>
+
+        </q-table>
       </div>
     </div>
-
-    <!-- {{ getTeacherSchedule(2147) }}<br> -->
-    <!-- {{ generateReport([475020], Types.SUBGROUP)}} -->
-    <q-btn icon="print" @click="generateReport([2147], Types.TEACHER)">Печатать</q-btn>
+    
+    <q-btn icon="print" @click="generateReport(selectedRows.map(row => row.id), model)">Печатать</q-btn>
   </div>
 </template>
 
@@ -191,5 +187,11 @@ watch(model, () => {
   flex-direction: column;
   gap: 10px;
   padding: 10px 0;
+}
+
+.model {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 </style>

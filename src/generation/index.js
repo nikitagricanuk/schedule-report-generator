@@ -13,11 +13,12 @@ import scheduleStore from "@/stores/scheduleStore.js";
 const Types = Object.freeze({
     TEACHER: 'TEACHER',
     SUBGROUP: 'SUBGROUP',
+    CLASSROOMS: 'CLASSROOMS',
 })
 
 function generateReport(ids, type) {
     const scheduleStore = useScheduleStore();
-
+    
     const pages = []
 
     if (type === Types.TEACHER) {
