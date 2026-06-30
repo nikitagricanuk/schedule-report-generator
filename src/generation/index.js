@@ -63,10 +63,10 @@ function slotCell(currentWeek, nextWeek, COL_SLOT) {
                         margins: { top: 40, bottom: 40, left: 50, right: 50 },
                         children: currentWeek
                             ? [new Paragraph({ children: [
-                                new TextRun({ text: currentWeek.discipline ?? '' }),
-                                new TextRun({ text: '  ' + (currentWeek.groups ?? '') }),
-                                new TextRun({ text: '  ' + (currentWeek.classroom ?? '') }),
-                                new TextRun({ text: ' (' + (currentWeek.type ?? '') + ')' }),
+                                new TextRun({ text: currentWeek.discipline ?? '', size: 16 }),
+                                new TextRun({ text: '  ' + (currentWeek.groups ?? ''), size: 16 }),
+                                new TextRun({ text: '  ' + (currentWeek.classroom ?? ''), size: 16 }),
+                                new TextRun({ text: ' (' + (currentWeek.type ?? '') + ')', size: 16 }),
                             ]})]
                             : [new Paragraph({ children: [] })],
                     })
@@ -87,10 +87,10 @@ function slotCell(currentWeek, nextWeek, COL_SLOT) {
                         margins: { top: 40, bottom: 40, left: 50, right: 50 },
                         children: nextWeek
                             ? [new Paragraph({ children: [
-                                new TextRun({ text: nextWeek.discipline ?? '' }),
-                                new TextRun({ text: '  ' + (nextWeek.groups ?? '') }),
-                                new TextRun({ text: '  ' + (nextWeek.classroom ?? '') }),
-                                new TextRun({ text: ' (' + (nextWeek.type ?? '') + ')' }),
+                                new TextRun({ text: nextWeek.discipline ?? '', size: 16 }),
+                                new TextRun({ text: '  ' + (nextWeek.groups ?? ''), size: 16 }),
+                                new TextRun({ text: '  ' + (nextWeek.classroom ?? ''), size: 16 }),
+                                new TextRun({ text: ' (' + (nextWeek.type ?? '') + ')', size: 16 }),
                             ]})]
                             : [new Paragraph({ children: [] })],
                     })
@@ -139,20 +139,13 @@ async function generateDocx(pages, type) {
                         new TableCell({
                             width: { size: COL_SLOT, type: WidthType.DXA },
                             verticalAlign: VerticalAlign.CENTER,
-                            children: [new Paragraph({ children: [new TextRun({ text: interval })] })]
+                            children: [new Paragraph({ children: [new TextRun({ text: interval, size: 16 })] })]
                         })
                     )
                 ]
             })
         ]
         for (let day = 1; day <= 6; day++) {
-            const cells = [
-                new TableCell({
-                    width: { size: COL_DAY, type: WidthType.DXA },
-                    verticalAlign: VerticalAlign.CENTER,
-                    children: [new Paragraph({ children: [new TextRun({ text: DAY_NAMES[day] })] })]
-                })
-            ]
             // Normalisation
             const flatSchedule = page.schedule.flatMap(item =>
                 Array.isArray(item)
@@ -160,33 +153,65 @@ async function generateDocx(pages, type) {
                     : [{ ...item, repeating: false }]
             );
 
+            const daySchedule = flatSchedule.filter(e => e.day === day || e.day === day + 7);
+            const hasSplitToday = daySchedule.some(e => e.repeating === true);
+
+            const makeParagraphs = (entry) => entry
+                ? [new Paragraph({
+                    children: [
+                        new TextRun({ text: entry.discipline ?? '', size: 16 }),
+                        new TextRun({ text: '  ' + (entry.groups ?? ''), size: 16 }),
+                        new TextRun({ text: '  ' + (entry.classroom ?? ''), size: 16 }),
+                        new TextRun({ text: ' (' + (entry.type ?? '') + ')', size: 16 }),
+                    ]
+                })]
+                : [new Paragraph({})];
+
+            const cells = [
+                new TableCell({
+                    width: { size: COL_DAY, type: WidthType.DXA },
+                    verticalAlign: VerticalAlign.CENTER,
+                    rowSpan: hasSplitToday ? 2 : undefined,
+                    children: [new Paragraph({ children: [new TextRun({ text: DAY_NAMES[day], size: 16 })] })]
+                })
+            ]
+            const double_cells = [];
+
             for (let order = 1; order <= 8; order++) {
-                const entries = flatSchedule.filter(e => (e.day === day || e.day === day + 7) && e.order === order);
+                const entries = daySchedule.filter(e => e.order === order);
+
                 if (entries[0]?.repeating === true) {
-                    cells.push(slotCell(entries[0], entries[1], COL_SLOT));
-                }
-                else {
-                    cells.push(
-                        new TableCell({
-                            width: {size: COL_SLOT, type: WidthType.DXA},
-                            verticalAlign: VerticalAlign.CENTER,
-                            margins: {top: 50, bottom: 50, left: 50, right: 50},
-                            shading: {fill: "FAFAFA", type: ShadingType.CLEAR},
-                            children: entries.length > 0
-                                ? entries.map(entry => new Paragraph({
-                                    children: [
-                                        new TextRun({text: entry.discipline ?? ''}),
-                                        new TextRun({text: '  ' + (entry.groups ?? '')}),
-                                        new TextRun({text: '  ' + (entry.classroom ?? '')}),
-                                        new TextRun({text: ' (' + (entry.type ?? '') + ')'}),
-                                    ]
-                                }))
-                                : [new Paragraph({})]
-                        })
-                    )
+                    // split slot: top half -> cells, bottom half -> double_cells
+                    cells.push(new TableCell({
+                        width: { size: COL_SLOT, type: WidthType.DXA },
+                        verticalAlign: VerticalAlign.CENTER,
+                        margins: { top: 50, bottom: 50, left: 50, right: 50 },
+                        shading: { fill: "FAFAFA", type: ShadingType.CLEAR },
+                        children: makeParagraphs(entries[0]),
+                    }));
+                    double_cells.push(new TableCell({
+                        width: { size: COL_SLOT, type: WidthType.DXA },
+                        verticalAlign: VerticalAlign.CENTER,
+                        margins: { top: 50, bottom: 50, left: 50, right: 50 },
+                        shading: { fill: "FAFAFA", type: ShadingType.CLEAR },
+                        children: makeParagraphs(entries[1]),
+                    }));
+                } else {
+                    cells.push(new TableCell({
+                        width: { size: COL_SLOT, type: WidthType.DXA },
+                        verticalAlign: VerticalAlign.CENTER,
+                        margins: { top: 50, bottom: 50, left: 50, right: 50 },
+                        shading: { fill: "FAFAFA", type: ShadingType.CLEAR },
+                        rowSpan: hasSplitToday ? 2 : undefined,
+                        children: entries.length > 0 ? makeParagraphs(entries[0]) : [new Paragraph({})]
+                    }));
                 }
             }
+
             rows.push(new TableRow({ children: cells }))
+            if (double_cells.length > 0) {
+                rows.push(new TableRow({ children: double_cells }))
+            }
         }
 
         children.push(new Table({
@@ -199,7 +224,7 @@ async function generateDocx(pages, type) {
             sections: [{
                 properties: {
                     page: {
-                        size: {width: 16838, height: 11906}, // A4 landscape in DXA units
+                        size: {width: 11906, height: 16838}, // A4 portrait in DXA units
                         margin: {top: 720, right: 720, bottom: 720, left: 720} // 0.5 inch
                     }
                 },
