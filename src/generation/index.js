@@ -44,6 +44,71 @@ function generateReport(ids, type) {
     generateDocx(pages, type);
 }
 
+function slotCell(currentWeek, nextWeek, COL_SLOT) {
+    const innerTable = new Table({
+        width: { size: COL_SLOT - 100, type: WidthType.DXA }, // slightly narrower than cell
+        columnWidths: [COL_SLOT - 100],
+        rows: [
+            // upper slot — current week
+            new TableRow({
+                children: [
+                    new TableCell({
+                        width: { size: COL_SLOT - 100, type: WidthType.DXA },
+                        borders: {
+                            top: { style: BorderStyle.NONE },
+                            left: { style: BorderStyle.NONE },
+                            right: { style: BorderStyle.NONE },
+                            bottom: { style: BorderStyle.SINGLE, size: 1, color: "CCCCCC" }, // divider line
+                        },
+                        margins: { top: 40, bottom: 40, left: 50, right: 50 },
+                        children: currentWeek
+                            ? [new Paragraph({ children: [
+                                new TextRun({ text: currentWeek.discipline ?? '' }),
+                                new TextRun({ text: '  ' + (currentWeek.groups ?? '') }),
+                                new TextRun({ text: '  ' + (currentWeek.classroom ?? '') }),
+                                new TextRun({ text: ' (' + (currentWeek.type ?? '') + ')' }),
+                            ]})]
+                            : [new Paragraph({ children: [] })],
+                    })
+                ]
+            }),
+
+            // lower slot — next week
+            new TableRow({
+                children: [
+                    new TableCell({
+                        width: { size: COL_SLOT - 100, type: WidthType.DXA },
+                        borders: {
+                            top: { style: BorderStyle.NONE },
+                            left: { style: BorderStyle.NONE },
+                            right: { style: BorderStyle.NONE },
+                            bottom: { style: BorderStyle.NONE },
+                        },
+                        margins: { top: 40, bottom: 40, left: 50, right: 50 },
+                        children: nextWeek
+                            ? [new Paragraph({ children: [
+                                new TextRun({ text: nextWeek.discipline ?? '' }),
+                                new TextRun({ text: '  ' + (nextWeek.groups ?? '') }),
+                                new TextRun({ text: '  ' + (nextWeek.classroom ?? '') }),
+                                new TextRun({ text: ' (' + (nextWeek.type ?? '') + ')' }),
+                            ]})]
+                            : [new Paragraph({ children: [] })],
+                    })
+                ]
+            }),
+        ]
+    });
+
+    return new TableCell({
+        width: { size: COL_SLOT, type: WidthType.DXA },
+        verticalAlign: VerticalAlign.TOP,
+        margins: { top: 0, bottom: 0, left: 0, right: 0 },
+        children: [innerTable],
+    });
+}
+
+
+
 async function generateDocx(pages, type) {
     // const logoData = await fetch('/logo.png').then(r => r.arrayBuffer());
 
@@ -88,26 +153,38 @@ async function generateDocx(pages, type) {
                     children: [new Paragraph({ children: [new TextRun({ text: DAY_NAMES[day] })] })]
                 })
             ]
+            // Normalisation
+            const flatSchedule = page.schedule.flatMap(item =>
+                Array.isArray(item)
+                    ? item.map(e => ({ ...e, repeating: true }))
+                    : [{ ...item, repeating: false }]
+            );
+
             for (let order = 1; order <= 8; order++) {
-                const entries = page.schedule.filter(e => e.day === day && e.order === order)
-                cells.push(
-                    new TableCell({
-                        width: { size: COL_SLOT, type: WidthType.DXA },
-                        verticalAlign: VerticalAlign.CENTER,
-                        margins: { top: 50, bottom: 50, left: 50, right: 50 },
-                        shading: { fill: "FAFAFA", type: ShadingType.CLEAR },
-                        children: entries.length > 0
-                            ? entries.map(entry => new Paragraph({
-                                children: [
-                                    new TextRun({ text: entry.discipline ?? '' }),
-                                    new TextRun({ text: '  ' + (entry.groups ?? '') }),
-                                    new TextRun({ text: '  ' + (entry.classroom ?? '') }),
-                                    new TextRun({ text: ' (' + (entry.type ?? '') + ')' }),
-                                ]
-                            }))
-                            : [new Paragraph({})]
-                    })
-                )
+                const entries = flatSchedule.filter(e => (e.day === day || e.day === day + 7) && e.order === order);
+                if (entries[0]?.repeating === true) {
+                    cells.push(slotCell(entries[0], entries[1], COL_SLOT));
+                }
+                else {
+                    cells.push(
+                        new TableCell({
+                            width: {size: COL_SLOT, type: WidthType.DXA},
+                            verticalAlign: VerticalAlign.CENTER,
+                            margins: {top: 50, bottom: 50, left: 50, right: 50},
+                            shading: {fill: "FAFAFA", type: ShadingType.CLEAR},
+                            children: entries.length > 0
+                                ? entries.map(entry => new Paragraph({
+                                    children: [
+                                        new TextRun({text: entry.discipline ?? ''}),
+                                        new TextRun({text: '  ' + (entry.groups ?? '')}),
+                                        new TextRun({text: '  ' + (entry.classroom ?? '')}),
+                                        new TextRun({text: ' (' + (entry.type ?? '') + ')'}),
+                                    ]
+                                }))
+                                : [new Paragraph({})]
+                        })
+                    )
+                }
             }
             rows.push(new TableRow({ children: cells }))
         }
