@@ -18,7 +18,7 @@ const Types = Object.freeze({
 
 function generateReport(ids, type) {
     const scheduleStore = useScheduleStore();
-    
+    console.log(ids)
     const pages = []
 
     if (type === Types.TEACHER) {

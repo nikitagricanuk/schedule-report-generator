@@ -145,6 +145,7 @@ const useScheduleStore = defineStore('scheduleStore', () => {
         blocks: blocks,
 
         classroomById: classroomById,
+        getGroupById: getGroupById,
         getTeacherSchedule: getTeacherSchedule,
         getSubgroupSchedule: getSubgroupSchedule,
         getTeacherById: getTeacherById,
