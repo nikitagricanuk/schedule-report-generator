@@ -126,7 +126,7 @@ async function generateDocx(pages, type) {
             })
         )
 
-        const COL_DAY = 420;
+        const COL_DAY = 180;
         const COL_SLOT = 1361;
         const TOTAL = COL_DAY + COL_SLOT * 8; // 11308
 
@@ -135,9 +135,9 @@ async function generateDocx(pages, type) {
         const rows = [
             new TableRow({
                 children: [
-                    ...CLASS_INTERVALS.map(interval =>
+                    ...CLASS_INTERVALS.map((interval, i) =>
                         new TableCell({
-                            width: { size: COL_SLOT, type: WidthType.DXA },
+                            width: { size: i === 0 ? COL_DAY : COL_SLOT, type: WidthType.DXA },
                             verticalAlign: VerticalAlign.CENTER,
                             children: [new Paragraph({ children: [new TextRun({ text: interval, size: 16 })] })]
                         })
@@ -220,7 +220,7 @@ async function generateDocx(pages, type) {
             rows: rows
         }));
 
-        var doc = new Document({
+        const doc = new Document({
             sections: [{
                 properties: {
                     page: {
@@ -231,15 +231,15 @@ async function generateDocx(pages, type) {
                 children: children
             }]
         });
-    }
 
-    const blob = await Packer.toBlob(doc);
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'output.docx';
-    a.click();
-    URL.revokeObjectURL(url);
+        const blob = await Packer.toBlob(doc);
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${page.name}.docx`;
+        a.click();
+        URL.revokeObjectURL(url);
+    }
 }
 
 export {Types};
