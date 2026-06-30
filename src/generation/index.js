@@ -36,7 +36,7 @@ function generateReport(ids, type) {
                 type: "группы ",
                 date: getCurrentDate(),
                 name: scheduleStore.getGroupById(ids[i])?.name,
-                schedule: scheduleStore.getTeacherSchedule(ids[i]),
+                schedule: scheduleStore.getSubgroupSchedule(ids[i]),
             });
         }
     }
@@ -112,11 +112,13 @@ function slotCell(currentWeek, nextWeek, COL_SLOT) {
 async function generateDocx(pages, type) {
     // const logoData = await fetch('/logo.png').then(r => r.arrayBuffer());
 
-    for (const page of pages) {
-        let children = [];
-        children.push(
+    const allChildren = [];
+
+    for (const [pageIndex, page] of pages.entries()) {
+        allChildren.push(
             new Paragraph({
                 tabStops: [{type: TabStopType.RIGHT, position: 11100}],
+                pageBreakBefore: pageIndex > 0,
                 children: [
                     new TextRun({text: page.date}),
                     new TextRun({text: " Карточка "}),
@@ -214,32 +216,32 @@ async function generateDocx(pages, type) {
             }
         }
 
-        children.push(new Table({
+        allChildren.push(new Table({
             width: { size: TOTAL, type: WidthType.DXA },
             columnWidths: [COL_DAY, 1361, 1361, 1361, 1361, 1361, 1361, 1361, 1361],
             rows: rows
         }));
-
-        const doc = new Document({
-            sections: [{
-                properties: {
-                    page: {
-                        size: {width: 11906, height: 16838}, // A4 portrait in DXA units
-                        margin: {top: 720, right: 720, bottom: 720, left: 720} // 0.5 inch
-                    }
-                },
-                children: children
-            }]
-        });
-
-        const blob = await Packer.toBlob(doc);
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${page.name}.docx`;
-        a.click();
-        URL.revokeObjectURL(url);
     }
+
+    const doc = new Document({
+        sections: [{
+            properties: {
+                page: {
+                    size: {width: 11906, height: 16838}, // A4 portrait in DXA units
+                    margin: {top: 720, right: 720, bottom: 720, left: 720} // 0.5 inch
+                }
+            },
+            children: allChildren
+        }]
+    });
+
+    const blob = await Packer.toBlob(doc);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'schedule.docx';
+    a.click();
+    URL.revokeObjectURL(url);
 }
 
 export {Types};
