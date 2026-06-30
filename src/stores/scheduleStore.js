@@ -3,6 +3,7 @@ import {onBeforeMount, computed, ref} from 'vue';
 import axios from 'axios';
 import _ from 'lodash';
 
+
 const useScheduleStore = defineStore('scheduleStore', () => {
     const load = ref({})
     const schedule = ref([])
@@ -96,6 +97,14 @@ const useScheduleStore = defineStore('scheduleStore', () => {
         return Object.values(teachers.value).find(e => e.id === id)
     }
 
+    function getTeachersByKafId(id) {
+        const loadArray = Object.values(load.value) 
+        const arrayAlleachers = loadArray.filter(item => item.kaf===id)
+        const idTeachers = _.flatMap(arrayAlleachers, 'teachers')
+        const arrayTeachers = teachers.value.filter(item => idTeachers.includes(item.id))
+        return arrayTeachers
+    }
+
     function getGroupById(id) {
         return Object.values(groups.value).find(e => e.id === id)
     }
@@ -130,6 +139,7 @@ const useScheduleStore = defineStore('scheduleStore', () => {
         getTeacherSchedule: getTeacherSchedule,
         getSubgroupSchedule: getSubgroupSchedule,
         getTeacherById: getTeacherById,
+        getTeachersByKafId: getTeachersByKafId,
     }
 })
 
