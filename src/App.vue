@@ -157,7 +157,7 @@ watch(model, () => {
         <q-select standout="bg-teal text-white" v-model="selectedOption" :options="blocks" option-label="korp"
           label="Корпус" />
 
-        <q-table flat bordered title="Преподаватели" :rows="data"
+        <q-table flat bordered title="Аудитории" :rows="data"
           :columns="[{ name: 'name', label: 'Аудитори', field: 'obozn' }]" row-key="id" selection="multiple"
           v-model:selected="selectedRows" hide-header-selection
           :selected-rows-label="(rowsCount) => `Выбрано строк: ${rowsCount}`" rows-per-page-label="Записей на странице:"
