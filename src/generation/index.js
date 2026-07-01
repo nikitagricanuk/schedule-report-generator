@@ -1,5 +1,5 @@
 import useScheduleStore from "@/stores/scheduleStore.js";
-import {getCurrentDate} from "./utils.js";
+import { getCurrentDate } from "./utils.js";
 
 import {
     Document, Packer, Paragraph, TextRun, Tab,
@@ -18,7 +18,7 @@ const Types = Object.freeze({
 
 function generateReport(ids, type) {
     const scheduleStore = useScheduleStore();
-    console.log(ids)
+
     const pages = []
 
     if (type === Types.TEACHER) {
@@ -35,8 +35,17 @@ function generateReport(ids, type) {
             pages.push({
                 type: "группы ",
                 date: getCurrentDate(),
-                name: scheduleStore.getGroupById(ids[i])?.name,
+                name: scheduleStore.getGroupById(ids[i])?.obozn,
                 schedule: scheduleStore.getSubgroupSchedule(ids[i]),
+            });
+        }
+    }else if (type === Types.CLASSROOMS) {
+        for (const i in ids) {
+            pages.push({
+                type: "аудитории ",
+                date: getCurrentDate(),
+                name: scheduleStore.getClassroomById(ids[i])?.obozn,
+                // schedule: scheduleStore.getSubgroupSchedule(ids[i]),
             });
         }
     }
@@ -44,68 +53,6 @@ function generateReport(ids, type) {
     generateDocx(pages, type);
 }
 
-function slotCell(currentWeek, nextWeek, COL_SLOT) {
-    const innerTable = new Table({
-        width: { size: COL_SLOT - 100, type: WidthType.DXA }, // slightly narrower than cell
-        columnWidths: [COL_SLOT - 100],
-        rows: [
-            // upper slot — current week
-            new TableRow({
-                children: [
-                    new TableCell({
-                        width: { size: COL_SLOT - 100, type: WidthType.DXA },
-                        borders: {
-                            top: { style: BorderStyle.NONE },
-                            left: { style: BorderStyle.NONE },
-                            right: { style: BorderStyle.NONE },
-                            bottom: { style: BorderStyle.SINGLE, size: 1, color: "CCCCCC" }, // divider line
-                        },
-                        margins: { top: 40, bottom: 40, left: 50, right: 50 },
-                        children: currentWeek
-                            ? [new Paragraph({ children: [
-                                new TextRun({ text: currentWeek.discipline ?? '', size: 16 }),
-                                new TextRun({ text: '  ' + (currentWeek.groups ?? ''), size: 16 }),
-                                new TextRun({ text: '  ' + (currentWeek.classroom ?? ''), size: 16 }),
-                                new TextRun({ text: ' (' + (currentWeek.type ?? '') + ')', size: 16 }),
-                            ]})]
-                            : [new Paragraph({ children: [] })],
-                    })
-                ]
-            }),
-
-            // lower slot — next week
-            new TableRow({
-                children: [
-                    new TableCell({
-                        width: { size: COL_SLOT - 100, type: WidthType.DXA },
-                        borders: {
-                            top: { style: BorderStyle.NONE },
-                            left: { style: BorderStyle.NONE },
-                            right: { style: BorderStyle.NONE },
-                            bottom: { style: BorderStyle.NONE },
-                        },
-                        margins: { top: 40, bottom: 40, left: 50, right: 50 },
-                        children: nextWeek
-                            ? [new Paragraph({ children: [
-                                new TextRun({ text: nextWeek.discipline ?? '', size: 16 }),
-                                new TextRun({ text: '  ' + (nextWeek.groups ?? ''), size: 16 }),
-                                new TextRun({ text: '  ' + (nextWeek.classroom ?? ''), size: 16 }),
-                                new TextRun({ text: ' (' + (nextWeek.type ?? '') + ')', size: 16 }),
-                            ]})]
-                            : [new Paragraph({ children: [] })],
-                    })
-                ]
-            }),
-        ]
-    });
-
-    return new TableCell({
-        width: { size: COL_SLOT, type: WidthType.DXA },
-        verticalAlign: VerticalAlign.TOP,
-        margins: { top: 0, bottom: 0, left: 0, right: 0 },
-        children: [innerTable],
-    });
-}
 
 
 
@@ -117,23 +64,24 @@ async function generateDocx(pages, type) {
     for (const [pageIndex, page] of pages.entries()) {
         allChildren.push(
             new Paragraph({
-                tabStops: [{type: TabStopType.RIGHT, position: 11100}],
+                tabStops: [{ type: TabStopType.RIGHT, position: 11100 }],
                 pageBreakBefore: pageIndex > 0,
                 children: [
-                    new TextRun({text: page.date}),
-                    new TextRun({text: " Карточка "}),
-                    new TextRun({text: page.type}),
-                    new TextRun({text: page.name, bold: true}),
+                    new TextRun({ text: page.date }),
+                    new TextRun({ text: " Карточка " }),
+                    new TextRun({ text: page.type }),
+                    new TextRun({ text: page.name, bold: true }),
                 ]
             })
         )
-
+        // console.log(page)
         const COL_DAY = 180;
         const COL_SLOT = 1361;
         const TOTAL = COL_DAY + COL_SLOT * 8; // 11308
 
         const DAY_NAMES = ['', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб']
         const CLASS_INTERVALS = ['', '8:15 - 9.45', '10:00 - 11:30', '11:45 - 13:15', '13:45 - 15:15', '15:30 - 17:00', '17:10 - 18:40', '18:45 - 20:15', '20:20 - 21:50']
+        //Время пар
         const rows = [
             new TableRow({
                 children: [
@@ -141,6 +89,10 @@ async function generateDocx(pages, type) {
                         new TableCell({
                             width: { size: i === 0 ? COL_DAY : COL_SLOT, type: WidthType.DXA },
                             verticalAlign: VerticalAlign.CENTER,
+                            shading: {
+                                fill: "F5F5F5",
+                                type: ShadingType.CLEAR,
+                            },
                             children: [new Paragraph({ children: [new TextRun({ text: interval, size: 16 })] })]
                         })
                     )
@@ -157,23 +109,26 @@ async function generateDocx(pages, type) {
 
             const daySchedule = flatSchedule.filter(e => e.day === day || e.day === day + 7);
             const hasSplitToday = daySchedule.some(e => e.repeating === true);
-
+            //Пары
             const makeParagraphs = (entry) => entry
                 ? [new Paragraph({
                     children: [
-                        new TextRun({ text: entry.discipline ?? '', size: 16 }),
-                        new TextRun({ text: '  ' + (entry.groups ?? ''), size: 16 }),
-                        new TextRun({ text: '  ' + (entry.classroom ?? ''), size: 16 }),
-                        new TextRun({ text: ' (' + (entry.type ?? '') + ')', size: 16 }),
+                        new TextRun({ text: (entry.classroom ?? '') + ' (' + (entry.type ?? '') + ')', size: 16, bold: true}),
+                        new TextRun({ text: '  ' + (entry.discipline ?? ''), size: 16 }),
+                        new TextRun({ text: entry.groups ?? '', size: 16, break: 1 }),
                     ]
                 })]
                 : [new Paragraph({})];
-
+            //Дни недели
             const cells = [
                 new TableCell({
                     width: { size: COL_DAY, type: WidthType.DXA },
                     verticalAlign: VerticalAlign.CENTER,
                     rowSpan: hasSplitToday ? 2 : undefined,
+                    shading: {
+                            fill: "F5F5F5",
+                            type: ShadingType.CLEAR,
+                        },
                     children: [new Paragraph({ children: [new TextRun({ text: DAY_NAMES[day], size: 16 })] })]
                 })
             ]
@@ -188,14 +143,20 @@ async function generateDocx(pages, type) {
                         width: { size: COL_SLOT, type: WidthType.DXA },
                         verticalAlign: VerticalAlign.CENTER,
                         margins: { top: 50, bottom: 50, left: 50, right: 50 },
-                        shading: { fill: "FAFAFA", type: ShadingType.CLEAR },
+                        shading: {
+                            fill: "F5F5F5",
+                            type: ShadingType.CLEAR,
+                        },
                         children: makeParagraphs(entries[0]),
                     }));
                     double_cells.push(new TableCell({
                         width: { size: COL_SLOT, type: WidthType.DXA },
                         verticalAlign: VerticalAlign.CENTER,
                         margins: { top: 50, bottom: 50, left: 50, right: 50 },
-                        shading: { fill: "FAFAFA", type: ShadingType.CLEAR },
+                        shading: {
+                            fill: "F5F5F5",
+                            type: ShadingType.CLEAR,
+                        },
                         children: makeParagraphs(entries[1]),
                     }));
                 } else {
@@ -203,7 +164,7 @@ async function generateDocx(pages, type) {
                         width: { size: COL_SLOT, type: WidthType.DXA },
                         verticalAlign: VerticalAlign.CENTER,
                         margins: { top: 50, bottom: 50, left: 50, right: 50 },
-                        shading: { fill: "FAFAFA", type: ShadingType.CLEAR },
+                        shading: { fill: entries.length > 0 ?"F5F5F5":"ffffff", type: ShadingType.CLEAR },
                         rowSpan: hasSplitToday ? 2 : undefined,
                         children: entries.length > 0 ? makeParagraphs(entries[0]) : [new Paragraph({})]
                     }));
@@ -227,8 +188,8 @@ async function generateDocx(pages, type) {
         sections: [{
             properties: {
                 page: {
-                    size: {width: 11906, height: 16838}, // A4 portrait in DXA units
-                    margin: {top: 720, right: 720, bottom: 720, left: 720} // 0.5 inch
+                    size: { width: 11906, height: 16838 }, // A4 portrait in DXA units
+                    margin: { top: 720, right: 720, bottom: 720, left: 720 } // 0.5 inch
                 }
             },
             children: allChildren
@@ -244,5 +205,5 @@ async function generateDocx(pages, type) {
     URL.revokeObjectURL(url);
 }
 
-export {Types};
+export { Types };
 export default generateReport;

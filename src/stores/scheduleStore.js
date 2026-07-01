@@ -111,6 +111,10 @@ const useScheduleStore = defineStore('scheduleStore', () => {
     }
 
 
+    function getClassroomById(id) {
+        return Object.values(classrooms.value).find(e => e.id === id)
+    }
+
     function getGroupById(id) {
         return Object.values(groups.value).find(e => e.id === id)
     }
@@ -151,6 +155,7 @@ const useScheduleStore = defineStore('scheduleStore', () => {
         getTeacherById: getTeacherById,
         getTeachersByKafId: getTeachersByKafId,
         getClassroomByBlockId: getClassroomByBlockId,
+        getClassroomById: getClassroomById,
     }
 })
 

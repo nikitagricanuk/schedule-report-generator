@@ -180,6 +180,9 @@ watch(model, () => {
   flex-direction: column;
   margin: 40px;
   justify-content: center;
+  border-radius: 15px;
+  background-color: Snow;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 .selectedBlock {
