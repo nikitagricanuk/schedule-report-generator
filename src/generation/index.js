@@ -2,7 +2,7 @@ import useScheduleStore from "@/stores/scheduleStore.js";
 import { getCurrentDate } from "./utils.js";
 
 import {
-    Document, Packer, Paragraph, TextRun, Tab,
+    Document, Packer, Paragraph, TextRun,
     Table, TableRow, TableCell,
     AlignmentType, VerticalAlign,
     WidthType, ShadingType, BorderStyle,
@@ -78,8 +78,7 @@ async function generateDocx(pages, type) {
                     new TextRun({ text: " Карточка " }),
                     new TextRun({ text: page.type }),
                     new TextRun({ text: page.name, bold: true }),
-                    new Tab(),
-                    new TextRun({ text: `Занятость: ${page.busyness}%`, bold: true }),
+                    new TextRun({ text: `Занятость: ${page.busyness}%`, bold: true, break: 1 }),
                 ]
             })
         )
