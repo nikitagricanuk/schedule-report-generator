@@ -19,45 +19,40 @@ const useScheduleStore = defineStore('scheduleStore', () => {
     const disciplineById = computed(() => _.keyBy(disciplines.value, d => d.id))
     const groupsById = computed(() => _.keyBy(groups.value, g => g.id))
 
+    function makeScheduleEntry(slot, day, everyweek) {
+        return {
+            everyweek,
+            day,
+            type: { 1: 'лк', 2: 'пр', 3: 'лб' }[slot.nt] ?? slot.nt,
+            order: slot.para,
+            discipline: slot.discipline,
+            classroom: slot.classroom,
+            teacher: slot.teacher,
+            groups: Array.isArray(slot.groups) ? slot.groups.join(', ') : slot.groups,
+        }
+    }
+
     function rebuildSchedule(slots) {
         const scheduleRebuild = []
         for (let i = 1; i <= 7; ++i) {
             for (const slot of slots) {
-                if (slot.day === i || slot.day === i + 7) {
-                    const actualDay = slot.day > 7 ? i + 7 : i
+                if (slot.day === i) {
                     if (slot.everyweek === 2) {
+                        scheduleRebuild.push(makeScheduleEntry(slot, i, true))
+                    }
+                    else if (slots.some(s => s.day === i + 7 && s.para === slot.para)) {
                         scheduleRebuild.push([
-                            {
-                                day: actualDay,
-                                type: { 1: 'лк', 2: 'пр', 3: 'лб' }[slot.nt] ?? slot.nt,
-                                order: slot.para,
-                                discipline: slot.discipline,
-                                classroom: slot.classroom,
-                                teacher: slot.teacher,
-                                groups: Array.isArray(slot.groups) ? slot.groups.join(', ') : slot.groups,
-                            },
-                            {
-                                day: actualDay === i ? i + 7 : i,
-                                type: { 1: 'лк', 2: 'пр', 3: 'лб' }[slot.nt] ?? slot.nt,
-                                order: slot.para,
-                                discipline: slot.discipline,
-                                classroom: slot.classroom,
-                                teacher: slot.teacher,
-                                groups: Array.isArray(slot.groups) ? slot.groups.join(', ') : slot.groups,
-                            }
+                            makeScheduleEntry(slot, i, false),
+                            makeScheduleEntry(slot, i + 7, false),
                         ])
                     }
                     else {
-                        scheduleRebuild.push({
-                            day: actualDay,
-                            type: { 1: 'лк', 2: 'пр', 3: 'лб' }[slot.nt] ?? slot.nt,
-                            order: slot.para,
-                            discipline: slot.discipline,
-                            classroom: slot.classroom,
-                            teacher: slot.teacher,
-                            groups: Array.isArray(slot.groups) ? slot.groups.join(', ') : slot.groups,
-                        })
+                        scheduleRebuild.push(makeScheduleEntry(slot, i, false))
                     }
+                }
+                // slot on the second week only
+                else if (slot.day === i + 7 && !slots.some(s => s.day === i && s.para === slot.para)) {
+                    scheduleRebuild.push(makeScheduleEntry(slot, i + 7, false))
                 }
             }
         }
@@ -76,6 +71,15 @@ const useScheduleStore = defineStore('scheduleStore', () => {
             discipline: disciplineById.value[workload.pred]?.pred,
             classroom: classroomById.value[slot.auds[0]]?.obozn?.trim(),
         }
+    }
+
+    function calculateBusyness(scheduleArr) {
+        const TOTAL_SLOTS = 96 // 6 days * 8 periods * 2 weeks
+        const occupiedSlots = scheduleArr.reduce((sum, item) => {
+            if (Array.isArray(item)) return sum + item.length
+            return sum + (item.everyweek ? 2 : 1)
+        }, 0)
+        return Math.round((occupiedSlots / TOTAL_SLOTS) * 100)
     }
 
     function getTeacherSchedule(id) {
@@ -158,6 +162,7 @@ const useScheduleStore = defineStore('scheduleStore', () => {
 
         classroomById: classroomById,
         getGroupById: getGroupById,
+        calculateBusyness: calculateBusyness,
         getTeacherSchedule: getTeacherSchedule,
         getSubgroupSchedule: getSubgroupSchedule,
         getTeacherById: getTeacherById,

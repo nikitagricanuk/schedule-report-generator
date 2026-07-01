@@ -7,6 +7,7 @@ import {
     AlignmentType, VerticalAlign,
     WidthType, ShadingType, BorderStyle,
     TabStopType, ImageRun, dateTimeValue,
+    HeightRule,
 } from "docx";
 import scheduleStore from "@/stores/scheduleStore.js";
 
@@ -23,33 +24,39 @@ function generateReport(ids, type) {
 
     if (type === Types.TEACHER) {
         for (const i in ids) {
+            const teacherSchedule = scheduleStore.getTeacherSchedule(ids[i]);
             pages.push({
+                busyness: scheduleStore.calculateBusyness(teacherSchedule),
                 type: "преподавателя ",
                 date: getCurrentDate(),
                 name: scheduleStore.getTeacherById(ids[i])?.name,
-                schedule: scheduleStore.getTeacherSchedule(ids[i]),
+                schedule: teacherSchedule,
             });
         }
     } else if (type === Types.SUBGROUP) {
         for (const i in ids) {
+            const subgroupSchedule = scheduleStore.getSubgroupSchedule(ids[i]);
             pages.push({
+                busyness: scheduleStore.calculateBusyness(subgroupSchedule),
                 type: "группы ",
                 date: getCurrentDate(),
                 name: scheduleStore.getGroupById(ids[i])?.obozn,
-                schedule: scheduleStore.getSubgroupSchedule(ids[i]),
+                schedule: subgroupSchedule,
             });
         }
     } else if (type === Types.CLASSROOMS) {
         for (const i in ids) {
+            const classroomSchedule = scheduleStore.getClassroomSchedule(ids[i]);
             pages.push({
+                busyness: scheduleStore.calculateBusyness(classroomSchedule),
                 type: "аудитории ",
                 date: getCurrentDate(),
                 name: scheduleStore.getClassroomById(ids[i])?.obozn,
-                schedule: scheduleStore.getClassroomSchedule(ids[i]),
+                schedule: classroomSchedule,
             });
         }
     }
-    
+
     generateDocx(pages, type);
 }
 
@@ -71,6 +78,8 @@ async function generateDocx(pages, type) {
                     new TextRun({ text: " Карточка " }),
                     new TextRun({ text: page.type }),
                     new TextRun({ text: page.name, bold: true }),
+                    new Tab(),
+                    new TextRun({ text: `Занятость: ${page.busyness}%`, bold: true }),
                 ]
             })
         )
@@ -78,6 +87,7 @@ async function generateDocx(pages, type) {
         const COL_DAY = 180;
         const COL_SLOT = 1361;
         const TOTAL = COL_DAY + COL_SLOT * 8; // 11308
+        const ROW_HEIGHT = 1600; 
 
         const DAY_NAMES = ['', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб']
         const CLASS_INTERVALS = ['', '8:15 - 9.45', '10:00 - 11:30', '11:45 - 13:15', '13:45 - 15:15', '15:30 - 17:00', '17:10 - 18:40', '18:45 - 20:15', '20:20 - 21:50']
@@ -103,12 +113,12 @@ async function generateDocx(pages, type) {
             // Normalisation
             const flatSchedule = page.schedule.flatMap(item =>
                 Array.isArray(item)
-                    ? item.map(e => ({ ...e, repeating: true }))
-                    : [{ ...item, repeating: false }]
+                    ? item.map(e => ({ ...e, splitWeek: true,  }))
+                    : [{ ...item, splitWeek: false }]
             );
 
             const daySchedule = flatSchedule.filter(e => e.day === day || e.day === day + 7);
-            const hasSplitToday = daySchedule.some(e => e.repeating === true);
+            const hasSplitToday = daySchedule.some(e => e.splitWeek === true || e.everyweek === false);
             //Пары
             const makeParagraphs = (entry) => {
                 if (entry) {
@@ -162,14 +172,14 @@ async function generateDocx(pages, type) {
             for (let order = 1; order <= 8; order++) {
                 const entries = daySchedule.filter(e => e.order === order);
 
-                if (entries[0]?.repeating === true) {
+                if (entries[0]?.splitWeek === true) {
                     // split slot: top half -> cells, bottom half -> double_cells
                     cells.push(new TableCell({
                         width: { size: COL_SLOT, type: WidthType.DXA },
                         verticalAlign: VerticalAlign.CENTER,
                         margins: { top: 50, bottom: 50, left: 50, right: 50 },
                         shading: {
-                            fill: "F5F5F5",
+                            fill: "FFF3A8",
                             type: ShadingType.CLEAR,
                         },
                         children: makeParagraphs(entries[0]),
@@ -179,26 +189,55 @@ async function generateDocx(pages, type) {
                         verticalAlign: VerticalAlign.CENTER,
                         margins: { top: 50, bottom: 50, left: 50, right: 50 },
                         shading: {
-                            fill: "F5F5F5",
+                            fill: "FFF3A8",
                             type: ShadingType.CLEAR,
                         },
                         children: makeParagraphs(entries[1]),
                     }));
-                } else {
+                }
+                else if (entries[0]?.everyweek === false) {
                     cells.push(new TableCell({
                         width: { size: COL_SLOT, type: WidthType.DXA },
                         verticalAlign: VerticalAlign.CENTER,
                         margins: { top: 50, bottom: 50, left: 50, right: 50 },
-                        shading: { fill: entries.length > 0 ? "F5F5F5" : "ffffff", type: ShadingType.CLEAR },
+                        shading: {
+                            fill: "FFF3A8",
+                            type: ShadingType.CLEAR,
+                        },
+                        children: makeParagraphs(entries[0]),
+                    }));
+                    double_cells.push(new TableCell({
+                        width: { size: COL_SLOT, type: WidthType.DXA },
+                        verticalAlign: VerticalAlign.CENTER,
+                        margins: { top: 50, bottom: 50, left: 50, right: 50 },
+                        shading: {
+                            fill: "FFFFFF",
+                            type: ShadingType.CLEAR,
+                        },
+                        children: [new Paragraph({})]
+                    }));
+                }
+                else {
+                    cells.push(new TableCell({
+                        width: { size: COL_SLOT, type: WidthType.DXA },
+                        verticalAlign: VerticalAlign.CENTER,
+                        margins: { top: 50, bottom: 50, left: 50, right: 50 },
+                        shading: { fill: entries.length > 0 ? "FFF3A8" : "ffffff", type: ShadingType.CLEAR },
                         rowSpan: hasSplitToday ? 2 : undefined,
                         children: entries.length > 0 ? makeParagraphs(entries[0]) : [new Paragraph({})]
                     }));
                 }
             }
 
-            rows.push(new TableRow({ children: cells }))
+            rows.push(new TableRow({
+                children: cells,
+                height: { value: hasSplitToday ? ROW_HEIGHT / 2 : ROW_HEIGHT, rule: HeightRule.ATLEAST },
+            }))
             if (double_cells.length > 0) {
-                rows.push(new TableRow({ children: double_cells }))
+                rows.push(new TableRow({
+                    children: double_cells,
+                    height: { value: ROW_HEIGHT / 2, rule: HeightRule.ATLEAST },
+                }))
             }
         }
 
