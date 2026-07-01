@@ -1,5 +1,5 @@
-import {defineStore} from "pinia";
-import {onBeforeMount, computed, ref} from 'vue';
+import { defineStore } from "pinia";
+import { onBeforeMount, computed, ref } from 'vue';
 import axios from 'axios';
 import _ from 'lodash';
 
@@ -94,20 +94,28 @@ const useScheduleStore = defineStore('scheduleStore', () => {
         return rebuildSchedule(slots)
     }
 
+    function getClassroomSchedule(id) {
+        if (!schedule.value?.raspis) return []
+        const slots = schedule.value.raspis
+            .filter(slot => slot.auds.includes(id))
+            .map(slot => mapSlot(slot, load.value[slot.raspnagr].teachers[0]))
+        return rebuildSchedule(slots)
+    }
+
     function getTeacherById(id) {
         return Object.values(teachers.value).find(e => e.id === id)
     }
 
     function getTeachersByKafId(id) {
-        const loadArray = Object.values(load.value) 
-        const arrayAlleachers = loadArray.filter(item => item.kaf===id)
+        const loadArray = Object.values(load.value)
+        const arrayAlleachers = loadArray.filter(item => item.kaf === id)
         const idTeachers = _.flatMap(arrayAlleachers, 'teachers')
         const arrayTeachers = teachers.value.filter(item => idTeachers.includes(item.id))
         return arrayTeachers
     }
 
     function getClassroomByBlockId(id) {
-        return Object.values(classrooms.value).filter(item => item.korp===id) 
+        return Object.values(classrooms.value).filter(item => item.korp === id)
     }
 
 
@@ -156,6 +164,7 @@ const useScheduleStore = defineStore('scheduleStore', () => {
         getTeachersByKafId: getTeachersByKafId,
         getClassroomByBlockId: getClassroomByBlockId,
         getClassroomById: getClassroomById,
+        getClassroomSchedule: getClassroomSchedule,
     }
 })
 

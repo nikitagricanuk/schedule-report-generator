@@ -39,17 +39,17 @@ function generateReport(ids, type) {
                 schedule: scheduleStore.getSubgroupSchedule(ids[i]),
             });
         }
-    }else if (type === Types.CLASSROOMS) {
+    } else if (type === Types.CLASSROOMS) {
         for (const i in ids) {
             pages.push({
                 type: "аудитории ",
                 date: getCurrentDate(),
                 name: scheduleStore.getClassroomById(ids[i])?.obozn,
-                // schedule: scheduleStore.getSubgroupSchedule(ids[i]),
+                schedule: scheduleStore.getClassroomSchedule(ids[i]),
             });
         }
     }
-    // return pages;
+    
     generateDocx(pages, type);
 }
 
@@ -74,7 +74,7 @@ async function generateDocx(pages, type) {
                 ]
             })
         )
-        // console.log(page)
+
         const COL_DAY = 180;
         const COL_SLOT = 1361;
         const TOTAL = COL_DAY + COL_SLOT * 8; // 11308
@@ -110,15 +110,40 @@ async function generateDocx(pages, type) {
             const daySchedule = flatSchedule.filter(e => e.day === day || e.day === day + 7);
             const hasSplitToday = daySchedule.some(e => e.repeating === true);
             //Пары
-            const makeParagraphs = (entry) => entry
-                ? [new Paragraph({
-                    children: [
-                        new TextRun({ text: (entry.classroom ?? '') + ' (' + (entry.type ?? '') + ')', size: 16, bold: true}),
-                        new TextRun({ text: '  ' + (entry.discipline ?? ''), size: 16 }),
-                        new TextRun({ text: entry.groups ?? '', size: 16, break: 1 }),
-                    ]
-                })]
-                : [new Paragraph({})];
+            const makeParagraphs = (entry) => {
+                if (entry) {
+                    switch (type) {
+                        case Types.TEACHER: {
+                            return [new Paragraph({
+                                children: [
+                                    new TextRun({ text: (entry.classroom + (' [' + (entry.type ?? '') + ']' ?? '') ?? ''), bold: true }),
+                                    new TextRun({ text: entry.discipline ?? '', size: 16, break: 1 }),
+                                    new TextRun({ text: entry.groups ?? '', size: 16, break: 1 }),
+                                ]
+                            })]
+                        }
+                        case Types.SUBGROUP: {
+                            return [new Paragraph({
+                                children: [
+                                    new TextRun({ text: (entry.classroom + (' [' + (entry.type ?? '') + ']' ?? '') ?? ''), size: 16, bold: true }),
+                                    new TextRun({ text: entry.discipline ?? '', size: 16, break: 1 }),
+                                    new TextRun({ text: entry.teacher ?? '', size: 16, break: 1 }),
+                                    new TextRun({ text: entry.groups ?? '', size: 16, break: 1 }),
+                                ]
+                            })]
+                        }
+                        case Types.CLASSROOMS: {
+                            return [new Paragraph({
+                                children: [
+                                    new TextRun({ text: entry.discipline ?? '', size: 16, break: 1 }),
+                                    new TextRun({ text: (entry.teacher + '' ?? '') + ('[' + (entry.type ?? '') + ']' ?? ''), size: 16, bold:true, break: 1 }),
+                                    new TextRun({ text: entry.groups ?? '', size: 16, break: 1 }),
+                                ]
+                            })]
+                        }
+                    }
+                } else return [new Paragraph({})];
+            }
             //Дни недели
             const cells = [
                 new TableCell({
@@ -126,9 +151,9 @@ async function generateDocx(pages, type) {
                     verticalAlign: VerticalAlign.CENTER,
                     rowSpan: hasSplitToday ? 2 : undefined,
                     shading: {
-                            fill: "F5F5F5",
-                            type: ShadingType.CLEAR,
-                        },
+                        fill: "F5F5F5",
+                        type: ShadingType.CLEAR,
+                    },
                     children: [new Paragraph({ children: [new TextRun({ text: DAY_NAMES[day], size: 16 })] })]
                 })
             ]
@@ -164,7 +189,7 @@ async function generateDocx(pages, type) {
                         width: { size: COL_SLOT, type: WidthType.DXA },
                         verticalAlign: VerticalAlign.CENTER,
                         margins: { top: 50, bottom: 50, left: 50, right: 50 },
-                        shading: { fill: entries.length > 0 ?"F5F5F5":"ffffff", type: ShadingType.CLEAR },
+                        shading: { fill: entries.length > 0 ? "F5F5F5" : "ffffff", type: ShadingType.CLEAR },
                         rowSpan: hasSplitToday ? 2 : undefined,
                         children: entries.length > 0 ? makeParagraphs(entries[0]) : [new Paragraph({})]
                     }));
